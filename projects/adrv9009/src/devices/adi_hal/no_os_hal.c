@@ -64,6 +64,7 @@ adiHalErr_t ADIHAL_openHw(void *devHalInfo, uint32_t halTimeout_ms)
 	spi_param.id = 0;
 	spi_param.mode = SPI_MODE_0;
 	spi_param.chip_select = ADRV_CS;
+	spi_param.flags = SPI_CS_DECODE;
 	status |= spi_init(&dev_hal_data->spi_adrv_desc, &spi_param);
 
 	status |= gpio_get(&dev_hal_data->gpio_adrv_sysref_req, ADRV_SYSREF_REQ);
@@ -220,10 +221,10 @@ adiHalErr_t ADIHAL_writeToLog(void *devHalInfo,
 		return (ADIHAL_GEN_SW);
 
 	if ((dev_hal_data->log_level & ADIHAL_LOG_ERR) &&
-			(logLevel == ADIHAL_LOG_ERR))
+	    (logLevel == ADIHAL_LOG_ERR))
 		printf("ERROR: %d: %s", (int)errorCode, comment);
 	else if ((dev_hal_data->log_level & ADIHAL_LOG_WARN) &&
-			(logLevel == ADIHAL_LOG_WARN))
+		 (logLevel == ADIHAL_LOG_WARN))
 		printf("WARNING: %d: %s", (int)errorCode, comment);
 
 	return ADIHAL_OK;
