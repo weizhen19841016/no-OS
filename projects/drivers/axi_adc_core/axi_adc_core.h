@@ -93,7 +93,7 @@ int32_t axi_adc_read(struct axi_adc *adc,
 int32_t axi_adc_write(struct axi_adc *adc,
 		      uint32_t reg_addr,
 		      uint32_t reg_data);
-int axi_adc_set_pnsel(struct axi_adc *adc, int channel,
+int axi_adc_set_pnsel(struct axi_adc *adc, int32_t channel,
 		      enum adc_pn_sel sel);
 void axi_adc_idelay_set(struct axi_adc *adc,
 			unsigned lane, unsigned val);

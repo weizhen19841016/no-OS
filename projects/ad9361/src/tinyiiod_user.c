@@ -118,7 +118,7 @@ static unsigned long read_ul_value(const char *str)
  * @param *ch_name channel name
  * @return channel number
  */
-int get_channel(char *ch, char *ch_name)
+int32_t get_channel(char *ch, char *ch_name)
 {
 	char *p = strstr(ch, ch_name);
 	if(p == NULL) {
@@ -139,7 +139,7 @@ extern int32_t ad9361_spi_write(struct spi_desc *spi, uint32_t reg,
  * @param value
  * @return 0 on success, negative value on failure
  */
-static int write_reg(unsigned int addr, uint32_t value)
+static int32_t write_reg(uint32_t addr, uint32_t value)
 {
 	return ad9361_spi_write(ad9361_phy->spi, addr, value);
 }
@@ -150,7 +150,7 @@ static int write_reg(unsigned int addr, uint32_t value)
  * @param *value
  * @return 0 on success, negative value on failure
  */
-static int read_reg(unsigned int addr, int32_t *value)
+static int32_t read_reg(uint32_t addr, int32_t *value)
 {
 	*value = ad9361_spi_read(ad9361_phy->spi, addr);
 	if(*value < 0)
@@ -163,7 +163,7 @@ extern int32_t ad9361_parse_fir(struct ad9361_rf_phy *phy,
 				char *data, uint32_t size);
 
 struct channel_info {
-	int ch_num;
+	int32_t ch_num;
 	bool ch_out;
 };
 
@@ -180,7 +180,7 @@ struct attrtibute_map {
  * @return attribute ID, or negative value if attribute is not found
  */
 int16_t get_attribute_id(const char *attr, const struct attrtibute_map* map,
-			 int map_size)
+			 int32_t map_size)
 {
 	int16_t i;
 	for(i = 0; i < map_size; i++) {
@@ -472,7 +472,7 @@ ssize_t get_calib_mode(char *buf, size_t len,
  */
 static ssize_t read_all_attr(char *buf, size_t len,
 			     const struct channel_info *channel, const struct attrtibute_map* map,
-			     int map_size)
+			     int32_t map_size)
 {
 	int16_t i, j = 0;
 	char local_buf[0x1000];
@@ -504,7 +504,7 @@ static ssize_t read_all_attr(char *buf, size_t len,
  */
 static ssize_t write_all_attr(char *buf, size_t len,
 			      const struct channel_info *channel, const struct attrtibute_map* map,
-			      int map_size)
+			      int32_t map_size)
 {
 	return 0;
 }
@@ -631,7 +631,7 @@ ssize_t set_dcxo_tune_fine(char *buf, size_t len,
 ssize_t set_calib_mode(char *buf, size_t len,
 		       const struct channel_info *channel)
 {
-	int arg = -1;
+	int32_t arg = -1;
 	ssize_t ret = 0;
 	u32 val = 0;
 	val = 0;
@@ -640,7 +640,7 @@ ssize_t set_calib_mode(char *buf, size_t len,
 	} else if (strequal(buf, "manual")) {
 		ad9361_set_tx_auto_cal_en_dis (ad9361_phy, 0);
 	} else if (!strncmp(buf, "tx_quad", 7)) {
-		ret = sscanf(buf, "tx_quad %d", &arg);
+		ret = sscanf(buf, "tx_quad %ld", &arg);
 		if (ret != 1)
 			arg = -1;
 		val = TX_QUAD_CAL;
@@ -797,7 +797,7 @@ ssize_t get_sampling_frequency(char *buf, size_t len,
 ssize_t get_sampling_frequency_available(char *buf, size_t len,
 		const struct channel_info *channel)
 {
-	int int_dec;
+	int32_t int_dec;
 	uint32_t max;
 
 	if (ad9361_phy->pdata->port_ctrl.pp_conf[2] & LVDS_MODE)
@@ -967,7 +967,7 @@ ssize_t get_rf_port_select_available(char *buf, size_t len,
 					 ad9361_rf_tx_port[1]);
 	} else {
 		ssize_t bytes_no = 0;
-		for(int i = 0; i < sizeof(ad9361_rf_rx_port) / sizeof(ad9361_rf_rx_port[0]);
+		for(int32_t i = 0; i < sizeof(ad9361_rf_rx_port) / sizeof(ad9361_rf_rx_port[0]);
 		    i++) {
 			if(i > 0 ) {
 				bytes_no += sprintf(buf + bytes_no, " ");
@@ -1075,7 +1075,7 @@ ssize_t get_hardwaregain(char *buf, size_t len,
 			val2 *= -1;
 
 		}
-		int i = 0;
+		int32_t i = 0;
 		if(val2 < 0 && val1 >= 0) {
 			ret = (ssize_t) snprintf(buf, len, "-");
 			i++;
@@ -1151,8 +1151,8 @@ ssize_t get_fastlock_save(char *buf, size_t len,
 {
 	u8 faslock_vals[16];
 	size_t length;
-	int ret = 0;
-	int i;
+	int32_t ret = 0;
+	int32_t i;
 	ret = ad9361_fastlock_save(ad9361_phy, channel->ch_num == 1,
 				   ad9361_phy->fastlock.save_profile, faslock_vals);
 	length = sprintf(buf, "%u ", ad9361_phy->fastlock.save_profile);
@@ -1277,7 +1277,7 @@ ssize_t get_dds_calibscale(char *buf, size_t len,
 	int32_t val, val2;
 	ssize_t ret = axi_dac_dds_get_calib_scale(ad9361_phy->tx_dac, channel->ch_num,
 			&val, &val2);
-	int i = 0;
+	int32_t i = 0;
 	if(ret < 0)
 		return ret;
 	if(val2 < 0 && val >= 0) {
@@ -1299,7 +1299,7 @@ ssize_t get_dds_calibphase(char *buf, size_t len,
 			   const struct channel_info *channel)
 {
 	int32_t val, val2;
-	int i = 0;
+	int32_t i = 0;
 	ssize_t ret = axi_dac_dds_get_calib_phase(ad9361_phy->tx_dac, channel->ch_num,
 			&val, &val2);
 	if(ret < 0)
@@ -1422,7 +1422,7 @@ ssize_t get_cf_calibphase(char *buf, size_t len,
 			  const struct channel_info *channel)
 {
 	int32_t val, val2;
-	int i = 0;
+	int32_t i = 0;
 	ssize_t ret = axi_adc_get_calib_phase(ad9361_phy->rx_adc, channel->ch_num, &val,
 					      &val2);
 	if(ret < 0)
@@ -1444,12 +1444,12 @@ ssize_t get_cf_calibphase(char *buf, size_t len,
 ssize_t get_cf_calibbias(char *buf, size_t len,
 			 const struct channel_info *channel)
 {
-	int val;
+	int32_t val;
 	uint32_t tmp;
 	axi_adc_read(ad9361_phy->rx_adc,
 		     ADI_REG_CHAN_CNTRL_1(channel->ch_num), &tmp);
 	val = (short)ADI_TO_DCFILT_OFFSET(tmp);
-	return snprintf(buf, len, "%d", val);
+	return snprintf(buf, len, "%ld", val);
 }
 
 /**
@@ -1465,7 +1465,7 @@ ssize_t get_cf_calibscale(char *buf, size_t len,
 	int32_t val, val2;
 	ssize_t ret = adc_get_calib_scale(ad9361_phy->rx_adc, channel->ch_num, &val,
 					  &val2);
-	int i = 0;
+	int32_t i = 0;
 	if(ret < 0)
 		return ret;
 	if(val2 < 0 && val >= 0) {
@@ -1665,7 +1665,7 @@ ssize_t set_hardwaregain(char *buf, size_t len,
 	int32_t val1 = (int32_t)gain;
 	int32_t val2 = (int32_t)(gain * 1000) % 1000;
 	if (channel->ch_out) {
-		int ch;
+		int32_t ch;
 		if (val1 > 0 || (val1 == 0 && val2 > 0)) {
 			return -EINVAL;
 		}
@@ -1748,7 +1748,7 @@ ssize_t set_gain_control_mode(char *buf, size_t len,
 			      const struct channel_info *channel)
 {
 	struct rf_gain_ctrl gc = {0};
-	int i;
+	int32_t i;
 	for(i = 0; i < sizeof(ad9361_agc_modes) / sizeof(ad9361_agc_modes[0]); i++) {
 		if(strequal(ad9361_agc_modes[i], buf)) {
 			break;
@@ -1892,7 +1892,7 @@ ssize_t set_gain_control_mode_available(char *buf, size_t len,
 					const struct channel_info *channel)
 {
 	struct rf_gain_ctrl gc = {0};
-	int i;
+	int32_t i;
 	for(i = 0; i < sizeof(ad9361_agc_modes) / sizeof(ad9361_agc_modes[0]); i++) {
 		if(strequal(ad9361_agc_modes[i], buf)) {
 			break;
@@ -2065,13 +2065,13 @@ ssize_t set_fastlock_load(char *buf, size_t len,
 	ssize_t ret = 0;
 	char *line, *ptr = (char*) buf;
 	u8 faslock_vals[16];
-	unsigned int profile = 0, val, val2, i = 0;
+	uint32_t profile = 0, val, val2, i = 0;
 
 	while ((line = strsep(&ptr, ","))) {
 		if (line >= buf + len)
 			break;
 
-		ret = sscanf(line, "%u %u", &val, &val2);
+		ret = sscanf(line, "%lu %lu", &val, &val2);
 		if (ret == 1) {
 			faslock_vals[i++] = val;
 			continue;
@@ -2351,7 +2351,7 @@ ssize_t set_cf_calibphase(char *buf, size_t len,
 ssize_t set_cf_calibbias(char *buf, size_t len,
 			 const struct channel_info *channel)
 {
-	int val = read_value(buf);
+	int32_t val = read_value(buf);
 	uint32_t tmp;
 	axi_adc_read(ad9361_phy->rx_adc,
 		     ADI_REG_CHAN_CNTRL_1(channel->ch_num), &tmp);
@@ -2538,7 +2538,7 @@ static ssize_t ch_write_attr(const char *device, const char *channel,
  * @param mask
  * @return 0 on success, otherwise negative value
  */
-static int open_dev(const char *device, size_t sample_size, uint32_t mask)
+static int32_t open_dev(const char *device, size_t sample_size, uint32_t mask)
 {
 	if (!dev_is_ad9361_module(device))
 		return -ENODEV;
@@ -2555,7 +2555,7 @@ static int open_dev(const char *device, size_t sample_size, uint32_t mask)
  * @param *device name
  * @return 0 on success, otherwise negative value
  */
-static int close_dev(const char *device)
+static int32_t close_dev(const char *device)
 {
 	return dev_is_ad9361_module(device) ? 0 : -ENODEV;
 }
@@ -2566,7 +2566,7 @@ static int close_dev(const char *device)
  * @param *device mask
  * @return 0 on success, otherwise negative value
  */
-static int get_mask(const char *device, uint32_t *mask)
+static int32_t get_mask(const char *device, uint32_t *mask)
 {
 	if (!dev_is_ad9361_module(device))
 		return -ENODEV;

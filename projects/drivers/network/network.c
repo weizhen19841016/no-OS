@@ -57,7 +57,7 @@ enum network_states {
 };
 
 struct fifo {
-	int instance_id;
+	int32_t instance_id;
 	struct fifo *next;
 	char *data;
 	u16_t len;
@@ -84,7 +84,7 @@ struct fifo *get_last(struct fifo *p_fifo)
 	return p_fifo;
 }
 
-void insert_tail(struct fifo **p_fifo, struct pbuf *ps, int id)
+void insert_tail(struct fifo **p_fifo, struct pbuf *ps, int32_t id)
 {
 	struct fifo *p = NULL;
 	if(*p_fifo == NULL) {
@@ -117,7 +117,7 @@ struct fifo * remove_head(struct fifo *p_fifo)
 }
 
 struct network_instance {
-	int instance_id;
+	int32_t instance_id;
 	u8_t state;
 	u8_t retries;
 	struct tcp_pcb *pcb;
@@ -160,7 +160,7 @@ err_t network_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 {
 	err_t ret_err;
 	struct network_instance *es;
-	static int inst_id = 0;
+	static int32_t inst_id = 0;
 	inst_id++;
 
 	LWIP_UNUSED_ARG(arg);
@@ -309,9 +309,9 @@ void network_close(struct tcp_pcb *tpcb, struct network_instance *es)
 	tcp_close(tpcb);
 }
 
-int tcpip_read_line(int *instance_id, char *buf)
+int32_t tcpip_read_line(int32_t *instance_id, char *buf)
 {
-	int len = 0;
+	int32_t len = 0;
 	char *data = NULL;
 	while(ip_fifo == NULL) {
 		lwip_keep_alive();
@@ -344,9 +344,9 @@ int tcpip_read_line(int *instance_id, char *buf)
 	return len;
 }
 
-int tcpip_read(int *instance_id, char *buf, size_t len)
+int32_t tcpip_read(int32_t *instance_id, char *buf, size_t len)
 {
-	int temp_len = 0;
+	int32_t temp_len = 0;
 	while(ip_fifo == NULL) {
 		lwip_keep_alive();
 	}
@@ -382,18 +382,18 @@ int tcpip_read(int *instance_id, char *buf, size_t len)
 }
 
 static char *non_block_buf;
-int tcpip_read_nonblocking(int *instance_id, char *buf, size_t len)
+int32_t tcpip_read_nonblocking(int32_t *instance_id, char *buf, size_t len)
 {
 	non_block_buf = buf;
 	return 0;
 }
 
-int tcpip_read_wait(int *instance_id, size_t len)
+int32_t tcpip_read_wait(int32_t *instance_id, size_t len)
 {
 	return tcpip_read(instance_id, non_block_buf, len);
 }
 
-void tcpip_write_data(int instance_id, const char *buf, size_t len)
+void tcpip_write_data(int32_t instance_id, const char *buf, size_t len)
 {
 	struct network_instance *instance = NULL;
 	u8_t apiflags = TCP_WRITE_FLAG_COPY;
@@ -406,8 +406,8 @@ void tcpip_write_data(int instance_id, const char *buf, size_t len)
 			lwip_keep_alive();
 		} while(tcp_sndbuf(instance->pcb) == 0);
 
-		int buf_len = tcp_sndbuf(instance->pcb);
-		int wr_length = buf_len > len ? len : buf_len;
+		int32_t buf_len = tcp_sndbuf(instance->pcb);
+		int32_t wr_length = buf_len > len ? len : buf_len;
 		apiflags |= buf_len > len ? 0 : TCP_WRITE_FLAG_MORE;
 		tcp_write(instance->pcb, pbuffer, wr_length, apiflags);
 		tcp_output(instance->pcb);
@@ -419,7 +419,7 @@ void tcpip_write_data(int instance_id, const char *buf, size_t len)
 	} while(tcp_sndbuf(instance->pcb) == 0);
 }
 
-int tcpip_exit(int instance_id)
+int32_t tcpip_exit(int32_t instance_id)
 {
 	struct network_instance *instance;
 	err_t err = 0;

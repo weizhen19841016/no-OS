@@ -81,15 +81,15 @@
 
 /************************** Function Prototypes *****************************/
 
-int UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
-		      u16 DeviceId, u16 UartIntrId);
+int32_t UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
+			  u16 DeviceId, u16 UartIntrId);
 
 
-static int SetupInterruptSystem(INTC *IntcInstancePtr,
-				XUartPs *UartInstancePtr,
-				u16 UartIntrId);
+static int32_t SetupInterruptSystem(INTC *IntcInstancePtr,
+				    XUartPs *UartInstancePtr,
+				    u16 UartIntrId);
 
-void Handler(void *CallBackRef, u32 Event, unsigned int EventData);
+void Handler(void *CallBackRef, u32 Event, uint32_t EventData);
 
 
 /************************** Variable Definitions ***************************/
@@ -103,16 +103,16 @@ static volatile bool bytes_received_timeout =
  * The following counters are used to determine when the entire buffer has
  * been sent and received.
  */
-volatile int TotalReceivedCount;
-volatile int TotalSentCount;
-int TotalErrorCount;
+volatile int32_t TotalReceivedCount;
+volatile int32_t TotalSentCount;
+int32_t TotalErrorCount;
 
 #define BUFFERL_LENGTH 8192
 static char buffer[BUFFERL_LENGTH];
 static char *pnext = buffer;
 static char *pcurr = buffer;
 
-int serial_read_line(int *instance_id, char *buf)
+int32_t serial_read_line(int32_t *instance_id, char *buf)
 {
 	if(pcurr == buffer) { // trigger a new receive
 		XUartPs_Recv(&UartPs, (u8*)pcurr, BUFFERL_LENGTH);
@@ -127,10 +127,10 @@ int serial_read_line(int *instance_id, char *buf)
 		*pnext = '\0';
 		pnext++;
 	}
-	int cmd_length = strlen(pcurr);
+	int32_t cmd_length = strlen(pcurr);
 	memcpy(buf, pcurr, cmd_length);
 	if(TotalReceivedCount > cmd_length + 2
-	    && pnext) { // in case two commands have been received, point to the next command
+	    && pnext) { // in case two commands have been received, point32_t to the next command
 		TotalReceivedCount -= (strlen(pcurr) + 2);
 		pcurr = pnext;
 	} else {
@@ -141,7 +141,7 @@ int serial_read_line(int *instance_id, char *buf)
 	return cmd_length;
 }
 
-int serial_read(int *instance_id, char *buf, size_t len)
+int32_t serial_read(int32_t *instance_id, char *buf, size_t len)
 {
 	size_t receive_len = len;
 	if(TotalReceivedCount) {
@@ -169,13 +169,13 @@ int serial_read(int *instance_id, char *buf, size_t len)
 	return TotalReceivedCount + receive_len;
 }
 
-int serial_read_nonblocking(int *instance_id, char *buf, size_t len)
+int32_t serial_read_nonblocking(int32_t *instance_id, char *buf, size_t len)
 {
 	XUartPs_Recv(&UartPs, (u8*)buf, len);
 	return 0;
 }
 
-int serial_read_wait(int *instance_id, size_t len)
+int32_t serial_read_wait(int32_t *instance_id, size_t len)
 {
 	do {
 	} while(!bytes_received_timeout && len != TotalReceivedCount);
@@ -183,15 +183,15 @@ int serial_read_wait(int *instance_id, size_t len)
 	return TotalReceivedCount;
 }
 
-void serial_write_data(int instance_id, const char *buf, size_t len)
+void serial_write_data(int32_t instance_id, const char *buf, size_t len)
 {
-	for ( int i = 0; i < len; i++)
+	for ( int32_t i = 0; i < len; i++)
 		outbyte(buf[i]);
 }
 
-int init_uart(void)
+int32_t init_uart(void)
 {
-	int Status;
+	int32_t Status;
 
 	/* Run the UartPs Interrupt example, specify the the Device ID */
 	Status = UartPsIntrExample(&InterruptController, &UartPs,
@@ -203,10 +203,10 @@ int init_uart(void)
 }
 
 
-int UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
-		      u16 DeviceId, u16 UartIntrId)
+int32_t UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
+			  u16 DeviceId, u16 UartIntrId)
 {
-	int Status;
+	int32_t Status;
 	XUartPs_Config *Config;
 	u32 IntrMask;
 
@@ -304,7 +304,7 @@ int UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
 * @note		None.
 *
 ***************************************************************************/
-void Handler(void *CallBackRef, u32 Event, unsigned int EventData)
+void Handler(void *CallBackRef, u32 Event, uint32_t EventData)
 {
 	/* All of the data has been sent */
 	if (Event == XUARTPS_EVENT_SENT_DATA) {
@@ -374,11 +374,11 @@ void Handler(void *CallBackRef, u32 Event, unsigned int EventData)
 * @note		None.
 *
 ****************************************************************************/
-static int SetupInterruptSystem(INTC *IntcInstancePtr,
-				XUartPs *UartInstancePtr,
-				u16 UartIntrId)
+static int32_t SetupInterruptSystem(INTC *IntcInstancePtr,
+				    XUartPs *UartInstancePtr,
+				    u16 UartIntrId)
 {
-	int Status;
+	int32_t Status;
 
 #ifdef XPAR_INTC_0_DEVICE_ID
 #ifndef TESTAPP_GEN

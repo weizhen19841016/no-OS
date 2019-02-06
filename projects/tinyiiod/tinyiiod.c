@@ -22,7 +22,7 @@
 #include <string.h>
 
 struct tinyiiod {
-	int instance_id;
+	int32_t instance_id;
 	const char *xml;
 	const struct tinyiiod_ops *ops;
 };
@@ -46,11 +46,11 @@ void tinyiiod_destroy(struct tinyiiod *iiod)
 	free(iiod);
 }
 
-int tinyiiod_read_command(struct tinyiiod *iiod)
+int32_t tinyiiod_read_command(struct tinyiiod *iiod)
 {
 	char buf[128];
 
-	int ret;
+	int32_t ret;
 	memset(buf, 0, sizeof(buf));
 	ret = tinyiiod_read_line(iiod, buf);
 	if(ret == 0)
@@ -71,22 +71,22 @@ char tinyiiod_read_char(struct tinyiiod *iiod)
 	return 0;
 }
 
-int tinyiiod_read(struct tinyiiod *iiod, char *buf, size_t len)
+int32_t tinyiiod_read(struct tinyiiod *iiod, char *buf, size_t len)
 {
 	return iiod->ops->read(&iiod->instance_id, buf, len);
 }
 
-int tinyiiod_read_line(struct tinyiiod *iiod, char *buf)
+int32_t tinyiiod_read_line(struct tinyiiod *iiod, char *buf)
 {
 	return iiod->ops->read_line(&iiod->instance_id, buf);
 }
 
-int tinyiiod_read_nonblocking(struct tinyiiod *iiod, char *buf, size_t len)
+int32_t tinyiiod_read_nonblocking(struct tinyiiod *iiod, char *buf, size_t len)
 {
 	return iiod->ops->read_nonbloking(&iiod->instance_id, buf, len);
 }
 
-int tinyiiod_read_wait(struct tinyiiod *iiod, size_t len)
+int32_t tinyiiod_read_wait(struct tinyiiod *iiod, size_t len)
 {
 	return iiod->ops->read_wait(&iiod->instance_id, len);
 }
@@ -106,11 +106,11 @@ void tinyiiod_write_string(struct tinyiiod *iiod, const char *str)
 	tinyiiod_write(iiod, str, strlen(str));
 }
 
-void tinyiiod_write_value(struct tinyiiod *iiod, int value)
+void tinyiiod_write_value(struct tinyiiod *iiod, int32_t value)
 {
 	char buf[16];
 
-	snprintf(buf, sizeof(buf), "%i\n", value);
+	snprintf(buf, sizeof(buf), "%li\n", value);
 	tinyiiod_write_string(iiod, buf);
 }
 
@@ -167,7 +167,7 @@ void tinyiiod_do_write_attr(struct tinyiiod *iiod, const char *device,
 void tinyiiod_do_open(struct tinyiiod *iiod, const char *device,
 		      size_t sample_size, uint32_t mask)
 {
-	int ret = iiod->ops->open(device, sample_size, mask);
+	int32_t ret = iiod->ops->open(device, sample_size, mask);
 	if(ret < 0) {
 		tinyiiod_write_value(iiod, ret -1);
 	}
@@ -176,17 +176,17 @@ void tinyiiod_do_open(struct tinyiiod *iiod, const char *device,
 
 void tinyiiod_do_close(struct tinyiiod *iiod, const char *device)
 {
-	int ret = iiod->ops->close(device);
+	int32_t ret = iiod->ops->close(device);
 	tinyiiod_write_value(iiod, ret);
 }
 
-int tinyiiod_do_exit(struct tinyiiod *iiod)
+int32_t tinyiiod_do_exit(struct tinyiiod *iiod)
 {
 	return iiod->ops->exit(iiod->instance_id);
 }
 
-int tinyiiod_do_writebuf(struct tinyiiod *iiod,
-			 const char *device, size_t bytes_count)
+int32_t tinyiiod_do_writebuf(struct tinyiiod *iiod,
+			     const char *device, size_t bytes_count)
 {
 	char *pbuffer = (char*)malloc(bytes_count);
 	if(pbuffer == NULL) {
@@ -209,7 +209,7 @@ int tinyiiod_do_writebuf(struct tinyiiod *iiod,
 void tinyiiod_do_readbuf(struct tinyiiod *iiod,
 			 const char *device, size_t bytes_count)
 {
-	int ret;
+	int32_t ret;
 	char *pbuf;
 	uint32_t mask;
 	bool print_mask = true;

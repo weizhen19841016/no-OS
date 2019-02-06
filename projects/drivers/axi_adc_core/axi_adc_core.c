@@ -296,7 +296,7 @@ int32_t axi_adc_get_calib_phase(struct axi_adc *adc,
 /***************************************************************************//**
  * @brief axiadc_set_pnsel
 *******************************************************************************/
-int axi_adc_set_pnsel(struct axi_adc *adc, int channel, enum adc_pn_sel sel)
+int axi_adc_set_pnsel(struct axi_adc *adc, int32_t channel, enum adc_pn_sel sel)
 {
 	uint32_t reg;
 	axi_adc_read(adc, ADI_REG_CHAN_CNTRL_3(channel), &reg);

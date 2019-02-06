@@ -76,16 +76,16 @@ void tcp_slowtmr(void);
 static XScuTimer TimerInstance;
 
 #ifndef USE_SOFTETH_ON_ZYNQ
-static int ResetRxCntr = 0;
+static int32_t ResetRxCntr = 0;
 #endif
 
 extern struct netif *echo_netif;
 
-volatile int TcpFastTmrFlag = 0;
-volatile int TcpSlowTmrFlag = 0;
+volatile int32_t TcpFastTmrFlag = 0;
+volatile int32_t TcpSlowTmrFlag = 0;
 
 #if LWIP_DHCP==1
-volatile int dhcp_timoutcntr = 24;
+volatile int32_t dhcp_timoutcntr = 24;
 void dhcp_fine_tmr();
 void dhcp_coarse_tmr();
 #endif
@@ -93,13 +93,13 @@ void dhcp_coarse_tmr();
 void
 timer_callback(XScuTimer * TimerInstance)
 {
-	static int DetectEthLinkStatus = 0;
+	static int32_t DetectEthLinkStatus = 0;
 	/* we need to call tcp_fasttmr & tcp_slowtmr at intervals specified
 	 * by lwIP. It is not important that the timing is absoluetly accurate.
 	 */
-	static int odd = 1;
+	static int32_t odd = 1;
 #if LWIP_DHCP==1
-	static int dhcp_timer = 0;
+	static int32_t dhcp_timer = 0;
 #endif
 	DetectEthLinkStatus++;
 	TcpFastTmrFlag = 1;

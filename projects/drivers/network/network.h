@@ -40,16 +40,16 @@
 #ifndef ECHO_H_
 #define ECHO_H_
 #include "stddef.h"
-int tcpip_read_line(int *instance_id, char *buf);
+int32_t tcpip_read_line(int32_t *instance_id, char *buf);
 
-int tcpip_read(int *instance_id, char *buf, size_t len);
+int32_t tcpip_read(int32_t *instance_id, char *buf, size_t len);
 
-int tcpip_read_nonblocking(int *instance_id, char *buf, size_t len);
+int32_t tcpip_read_nonblocking(int32_t *instance_id, char *buf, size_t len);
 
-int tcpip_read_wait(int *instance_id, size_t len);
+int32_t tcpip_read_wait(int32_t *instance_id, size_t len);
 
-void tcpip_write_data(int instance_id, const char *buf, size_t len);
+void tcpip_write_data(int32_t instance_id, const char *buf, size_t len);
 
-int tcpip_exit(int instance_id);
+int32_t tcpip_exit(int32_t instance_id);
 
 #endif // ECHO_H_

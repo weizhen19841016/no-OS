@@ -25,7 +25,7 @@
 #define TINYIIOD_VERSION_MINOR 1
 #define TINYIIOD_VERSION_GIT "v0.1"
 
-static int parse_rw_string(struct tinyiiod *iiod, char *str, bool write)
+static int32_t parse_rw_string(struct tinyiiod *iiod, char *str, bool write)
 {
 	char *device, *channel, *attr, *ptr;
 	bool is_channel = false, output = false, debug = false;
@@ -86,7 +86,7 @@ static int parse_rw_string(struct tinyiiod *iiod, char *str, bool write)
 	return 0;
 }
 
-static int parse_open_string(struct tinyiiod *iiod, char *str)
+static int32_t parse_open_string(struct tinyiiod *iiod, char *str)
 {
 	char *device, *ptr;
 	long samples_count;
@@ -110,7 +110,7 @@ static int parse_open_string(struct tinyiiod *iiod, char *str)
 	return 0;
 }
 
-static int parse_writebuf_string(struct tinyiiod *iiod, char *str)
+static int32_t parse_writebuf_string(struct tinyiiod *iiod, char *str)
 {
 	char *device, *ptr;
 	long bytes_count;
@@ -131,7 +131,7 @@ static int parse_writebuf_string(struct tinyiiod *iiod, char *str)
 	return tinyiiod_do_writebuf(iiod, device, (size_t) bytes_count);
 }
 
-static int parse_readbuf_string(struct tinyiiod *iiod, char *str)
+static int32_t parse_readbuf_string(struct tinyiiod *iiod, char *str)
 {
 	char *device, *ptr;
 	long bytes_count;
@@ -152,7 +152,7 @@ static int parse_readbuf_string(struct tinyiiod *iiod, char *str)
 	return 0;
 }
 
-int tinyiiod_parse_string(struct tinyiiod *iiod, char *str)
+int32_t tinyiiod_parse_string(struct tinyiiod *iiod, char *str)
 {
 	if (str[0] == '\0')
 		return 0;

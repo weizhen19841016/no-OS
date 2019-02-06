@@ -63,13 +63,13 @@ void lwip_init();
 
 #if LWIP_IPV6==0
 #if LWIP_DHCP==1
-extern volatile int dhcp_timoutcntr;
+extern volatile int32_t dhcp_timoutcntr;
 err_t dhcp_start(struct netif *netif);
 #endif
 #endif
 
-extern volatile int TcpFastTmrFlag;
-extern volatile int TcpSlowTmrFlag;
+extern volatile int32_t TcpFastTmrFlag;
+extern volatile int32_t TcpSlowTmrFlag;
 static struct netif server_netif;
 struct netif *echo_netif;
 
