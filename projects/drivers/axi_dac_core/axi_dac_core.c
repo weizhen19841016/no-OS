@@ -249,13 +249,13 @@ int32_t axi_dac_init(struct axi_dac **dac_core,
 		goto error;
 	}
 
-	axi_dac_write(dac, AXI_DAC_REG_RATECNTRL, AXI_DAC_RATE(3)); // dac_rate todo
-	// samling_ratio => sampling_clock = dac_clock * sampling_ratio
+	axi_dac_write(dac, AXI_DAC_REG_RATECNTRL, AXI_DAC_RATE(3));
+
 	axi_dac_read(dac, AXI_DAC_REG_CLK_FREQ, &freq);
 	axi_dac_read(dac, AXI_DAC_REG_CLK_RATIO, &ratio);
 	dac->clock_hz = freq * ratio;
 	dac->clock_hz = (dac->clock_hz * 390625) >> 8;
-	dac->clock_hz /= 4; // todo, this is for 2x2 LVDS
+	dac->clock_hz /= init->clock_factor;
 
 	for (ch = 0; ch < dac->num_channels; ch++) {
 		axi_dac_dds_set_frequency(dac, ((ch*2)+0), 3*1000*1000);

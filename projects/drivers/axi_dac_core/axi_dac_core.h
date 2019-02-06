@@ -71,6 +71,7 @@ struct axi_dac_init {
 	const char *name;
 	uint32_t base;
 	uint8_t	num_channels;
+	uint32_t clock_factor;
 };
 
 #define DAC_REG_CHAN_CNTRL_6(c)		(0x0414 + (c) * 0x40)
