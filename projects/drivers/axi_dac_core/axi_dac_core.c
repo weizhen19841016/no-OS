@@ -268,7 +268,7 @@ int32_t axi_dac_init(struct axi_dac **dac_core,
 		axi_dac_write(dac, AXI_DAC_REG_DATA_SELECT((ch*2)+1), 0);
 	}
 	axi_dac_write(dac, AXI_DAC_REG_SYNC_CONTROL, AXI_DAC_SYNC);
-	// printf("%s: Successfully initialized (%llu Hz)\n", dac->name, dac->clock_hz); // this gets in conflict with serial communication
+	printf("%s: Successfully initialized (%llu Hz)\n", dac->name, dac->clock_hz);
 
 	*dac_core = dac;
 

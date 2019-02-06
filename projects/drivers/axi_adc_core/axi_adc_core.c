@@ -193,7 +193,7 @@ int32_t axi_adc_init(struct axi_adc **adc_core,
 	adc->clock_hz = freq * ratio;
 	adc->clock_hz = (adc->clock_hz * 390625) >> 8;
 
-	// printf("%s: Successfully initialized (%llu Hz)\n", adc->name, adc->clock_hz); // this gets in conflict with serial communication
+	printf("%s: Successfully initialized (%llu Hz)\n", adc->name, adc->clock_hz);
 
 	*adc_core = adc;
 
