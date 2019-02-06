@@ -218,6 +218,7 @@ int main(void)
 		"rx_dac",
 		TX_CORE_BASEADDR,
 		4,
+		1
 	};
 	struct axi_dac *tx_dac;
 	struct axi_dmac_init rx_dmac_init = {
