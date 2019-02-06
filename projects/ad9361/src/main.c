@@ -395,7 +395,7 @@ struct ad9361_rf_phy *ad9361_phy_b;
 extern struct tinyiiod_ops ops;
 #endif
 
-struct spi_init_param spi_param = {.id = SPI_DEVICE_ID, .mode = SPI_MODE_1, .chip_select = CLK_CS};
+struct spi_init_param spi_param = {.id = SPI_DEVICE_ID, .mode = SPI_MODE_1, .chip_select = CLK_CS, .flags = 0};
 
 /***************************************************************************//**
  * @brief main

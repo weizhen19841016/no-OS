@@ -174,9 +174,12 @@ int32_t spi_init(struct spi_desc **desc,
 				   descriptor->config, descriptor->config->BaseAddress);
 	if (ret != 0)
 		goto error;
+	descriptor->flags = param->flags;
 	XSpiPs_SetOptions(&descriptor->instance,
 			  XSPIPS_MASTER_OPTION |
 			  XSPIPS_DECODE_SSELECT_OPTION |
+			  ((descriptor->flags & SPI_CS_DECODE) ?
+			   XSPIPS_DECODE_SSELECT_OPTION : 0) |
 			  XSPIPS_FORCE_SSELECT_OPTION |
 			  ((descriptor->mode & SPI_CPOL) ?
 			   XSPIPS_CLK_ACTIVE_LOW_OPTION : 0) |
@@ -246,6 +249,8 @@ int32_t spi_write_and_read(struct spi_desc *desc,
 #ifdef _XPARAMETERS_PS_H_
 	XSpiPs_SetOptions(&desc->instance,
 			  XSPIPS_MASTER_OPTION |
+			  ((desc->flags & SPI_CS_DECODE) ?
+			   XSPIPS_DECODE_SSELECT_OPTION : 0) |
 			  XSPIPS_FORCE_SSELECT_OPTION |
 			  ((desc->mode & SPI_CPOL) ?
 			   XSPIPS_CLK_ACTIVE_LOW_OPTION : 0) |
