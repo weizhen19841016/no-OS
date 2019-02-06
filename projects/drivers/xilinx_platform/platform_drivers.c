@@ -174,7 +174,6 @@ int32_t spi_init(struct spi_desc **desc,
 				   descriptor->config, descriptor->config->BaseAddress);
 	if (ret != 0)
 		goto error;
-
 	XSpiPs_SetOptions(&descriptor->instance,
 			  XSPIPS_MASTER_OPTION |
 			  XSPIPS_DECODE_SSELECT_OPTION |
@@ -247,13 +246,11 @@ int32_t spi_write_and_read(struct spi_desc *desc,
 #ifdef _XPARAMETERS_PS_H_
 	XSpiPs_SetOptions(&desc->instance,
 			  XSPIPS_MASTER_OPTION |
-			  XSPIPS_DECODE_SSELECT_OPTION |
 			  XSPIPS_FORCE_SSELECT_OPTION |
 			  ((desc->mode & SPI_CPOL) ?
 			   XSPIPS_CLK_ACTIVE_LOW_OPTION : 0) |
 			  ((desc->mode & SPI_CPHA) ?
 			   XSPIPS_CLK_PHASE_1_OPTION : 0));
-
 	XSpiPs_SetSlaveSelect(&desc->instance,
 			      0xf & ~desc->chip_select);
 	XSpiPs_PolledTransfer(&desc->instance,
@@ -422,13 +419,26 @@ int32_t gpio_get_direction(struct gpio_desc *desc,
 int32_t gpio_set_value(struct gpio_desc *desc,
 		       uint8_t value)
 {
-	if (desc) {
-		// Unused variable - fix compiler warning
-	}
+#ifdef _XPARAMETERS_PS_H_
+	XGpioPs_WritePin(&desc->instance, desc->number, value);
+#else
+	uint32_t config = 0;
+	uint32_t data_reg_addr;
 
-	if (value) {
-		// Unused variable - fix compiler warning
+	if (pin >= 32) {
+		data_reg_addr = XGPIO_DATA2_OFFSET;
+		pin -= 32;
+	} else
+		data_reg_addr = XGPIO_DATA_OFFSET;
+
+	config = Xil_In32((gpio_config->BaseAddress + data_reg_addr));
+	if(data) {
+		config |= (1 << pin);
+	} else {
+		config &= ~(1 << pin);
 	}
+	Xil_Out32((gpio_config->BaseAddress + data_reg_addr), config);
+#endif
 
 	return 0;
 }
@@ -478,3 +488,4 @@ void mdelay(uint32_t msecs)
 	usleep(msecs * 50);	// FIXME
 #endif
 }
+

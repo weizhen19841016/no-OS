@@ -123,6 +123,7 @@ int32_t axi_dmac_transfer(struct axi_dmac *dmac,
 	axi_dmac_read(dmac, AXI_DMAC_REG_TRANSFER_ID, &transfer_id);
 	axi_dmac_read(dmac, AXI_DMAC_REG_IRQ_PENDING, &reg_val);
 	axi_dmac_write(dmac, AXI_DMAC_REG_IRQ_PENDING, reg_val);
+	axi_dmac_write(dmac, AXI_DMAC_REG_FLAGS, dmac->flags); 	// for cyclic transfer
 
 	switch (dmac->direction) {
 	case DMA_DEV_TO_MEM:
@@ -181,6 +182,8 @@ int32_t axi_dmac_init(struct axi_dmac **dmac_core,
 	dmac->base = init->base;
 	dmac->direction = init->direction;
 	dmac->flags = init->flags;
+
+	axi_dmac_write(dmac, AXI_DMAC_REG_CTRL, 0x0);
 
 	*dmac_core = dmac;
 

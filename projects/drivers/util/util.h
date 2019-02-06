@@ -104,5 +104,7 @@ void rational_best_approximation(uint32_t given_numerator,
 				 uint32_t *best_denominator);
 /* Calculate the number of set bits. */
 uint32_t hweight8(uint32_t word);
+uint64_t do_div(uint64_t* n,
+		uint64_t base);
 #endif // UTIL_H_
 

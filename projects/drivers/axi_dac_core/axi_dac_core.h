@@ -47,6 +47,19 @@
 /******************************************************************************/
 /*************************** Types Declarations *******************************/
 /******************************************************************************/
+enum dds_data_select {
+	DATA_SEL_DDS,
+	DATA_SEL_SED,
+	DATA_SEL_DMA,
+	DATA_SEL_ZERO,	/* OUTPUT 0 */
+	DATA_SEL_PN7,
+	DATA_SEL_PN15,
+	DATA_SEL_PN23,
+	DATA_SEL_PN31,
+	DATA_SEL_LB,	/* loopback data (ADC) */
+	DATA_SEL_PNXX,	/* (Device specific) */
+};
+
 struct axi_dac {
 	const char *name;
 	uint32_t base;
@@ -60,10 +73,53 @@ struct axi_dac_init {
 	uint8_t	num_channels;
 };
 
+#define DAC_REG_CHAN_CNTRL_6(c)		(0x0414 + (c) * 0x40)
+#define DAC_IQCOR_ENB				(1 << 2) /* v8.0 */
+
+#define DAC_REG_CHAN_CNTRL_7(c)		(0x0418 + (c) * 0x40) /* v8.0 */
+#define DAC_DAC_DDS_SEL(x)			(((x) & 0xF) << 0)
+#define DAC_TO_DAC_DDS_SEL(x)		(((x) >> 0) & 0xF)
+
+#define DAC_REG_CHAN_CNTRL_8(c)		(0x041C + (c) * 0x40) /* v8.0 */
+#define DAC_IQCOR_COEFF_1(x)		(((x) & 0xFFFF) << 16)
+#define DAC_TO_IQCOR_COEFF_1(x)		(((x) >> 16) & 0xFFFF)
+#define DAC_IQCOR_COEFF_2(x)		(((x) & 0xFFFF) << 0)
+#define DAC_TO_IQCOR_COEFF_2(x)		(((x) >> 0) & 0xFFFF)
+
 /******************************************************************************/
 /************************ Functions Declarations ******************************/
 /******************************************************************************/
 int32_t axi_dac_init(struct axi_dac **dac_core,
 		     const struct axi_dac_init *init);
 int32_t axi_dac_remove(struct axi_dac *dac);
+int32_t axi_dac_write(struct axi_dac *dac,
+		      uint32_t reg_addr,
+		      uint32_t reg_data);
+int32_t axi_dac_read(struct axi_dac *dac,
+		     uint32_t reg_addr,
+		     uint32_t *reg_data);
+int32_t axi_dac_dds_set_frequency(struct axi_dac *dac,
+				  uint32_t chan, uint32_t freq_hz);
+void axi_dac_dds_get_frequency(struct axi_dac *dac, uint32_t chan,
+			       uint32_t *freq);
+int32_t axi_dac_dds_set_phase(struct axi_dac *dac, uint32_t chan,
+			      uint32_t phase);
+void axi_dac_dds_get_phase(struct axi_dac *dac, uint32_t chan, uint32_t *phase);
+int32_t axi_dac_dds_set_scale(struct axi_dac *dac, uint32_t chan,
+			      int32_t scale_micro_units);
+void axi_dac_dds_get_scale(struct axi_dac *dac, uint32_t chan,
+			   int32_t *scale_micro_units);
+int32_t axi_dac_dds_set_calib_scale(struct axi_dac *dac, uint32_t chan,
+				    int32_t val, int32_t val2);
+int32_t axi_dac_dds_get_calib_scale(struct axi_dac *dac, uint32_t chan,
+				    int32_t *val, int32_t *val2);
+int32_t axi_dac_dds_set_calib_phase(struct axi_dac *dac, uint32_t chan,
+				    int32_t val, int32_t val2);
+int32_t axi_dac_dds_get_calib_phase(struct axi_dac *dac, uint32_t chan,
+				    int32_t *val, int32_t *val2);
+int32_t axi_dac_datasel(struct axi_dac *dac, int32_t chan,
+			enum dds_data_select sel);
+int32_t axi_dmac_set_buff(struct axi_dac *dac, uint32_t address, uint16_t *buf,
+			  uint32_t buff_size);
+uint32_t axi_dmac_set_sine_lut(struct axi_dac *dac, uint32_t address);
 #endif

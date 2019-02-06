@@ -1,7 +1,7 @@
 /***************************************************************************//**
- *   @file   console.h
- *   @brief  Header file of Console Driver.
- *   @author DBogdan (dragos.bogdan@analog.com)
+ *   @file   serial.h
+ *   @brief  Header file of Serial interface.
+ *   @author CPop (cristian.pop@analog.com)
 ********************************************************************************
  * Copyright 2013(c) Analog Devices, Inc.
  *
@@ -36,33 +36,20 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
-#ifndef __CONSOLE_H__
-#define __CONSOLE_H__
 
-/******************************************************************************/
-/******************** Macros and Constants Definitions ************************/
-/******************************************************************************/
-#define UNKNOWN_CMD	-1
-#define DO_CMD	   	0
-#define READ_CMD	1
-#define WRITE_CMD	2
+#ifndef SRC_SERIAL_H_
+#define SRC_SERIAL_H_
 
-/******************************************************************************/
-/************************ Functions Declarations ******************************/
-/******************************************************************************/
-/* Initializes the serial console. */
-char console_init(unsigned long baud_rate);
+int serial_read_line(int *instance_id, char *buf);
 
-/* Prints formatted data to console. */
-void console_print(char* str, ...);
+int serial_read(int *instance_id, char *buf, size_t len);
 
-/* Reads one command from console. */
-void console_get_command(char* command);
+int serial_read_nonblocking(int *instance_id, char *buf, size_t len);
 
-/* Compares two commands and returns the type of the command. */
-int console_check_commands(char*	   received_cmd,
-						   const char* expected_cmd,
-						   double*	   param,
-						   char*	   param_no);
+int serial_read_wait(int *instance_id, size_t len);
 
-#endif /*__CONSOLE_H__*/
+void serial_write_data(int instance_id, const char *buf, size_t len);
+
+int init_uart(void);
+
+#endif /* SRC_SERIAL_H_ */

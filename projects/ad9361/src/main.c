@@ -42,42 +42,48 @@
 /******************************************************************************/
 #include "config.h"
 #include "ad9361_api.h"
-#include "parameters.h"
-#include "platform.h"
-#ifdef CONSOLE_COMMANDS
-#include "command.h"
-#include "console.h"
-#endif
+#include "ad9361_parameters.h"
+#include "platform_drivers.h"
 #ifdef XILINX_PLATFORM
 #include <xil_cache.h>
 #endif
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM || defined ALTERA_PLATFORM
-#include "adc_core.h"
-#include "dac_core.h"
+#include "axi_adc_core.h"
+#include "axi_dac_core.h"
+#include "axi_dmac.h"
 #endif
 #ifdef USE_LIBIIO
+#ifdef UART_INTERFACE
 #include "serial.h"
+#endif // UART_INTERFACE
 #include "tinyiiod.h"
 #include "tinyiiod_user.h"
-#endif
+#endif // USE_LIBIIO
 /******************************************************************************/
 /************************ Variables Definitions *******************************/
 /******************************************************************************/
-#ifdef CONSOLE_COMMANDS
-extern command	  	cmd_list[];
-extern char			cmd_no;
-extern cmd_function	cmd_functions[11];
-unsigned char		cmd				 =  0;
-double				param[5]		 = {0, 0, 0, 0, 0};
-char				param_no		 =  0;
-int					cmd_type		 = -1;
-char				invalid_cmd		 =  0;
-char				received_cmd[30] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-						    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-						    0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-			   };
-#endif
-
+struct axi_adc_init rx_adc_init = {
+	"rx_adc",
+	RX_CORE_BASEADDR,
+	4,
+};
+struct axi_dac_init tx_dac_init = {
+	"rx_dac",
+	TX_CORE_BASEADDR,
+	4,
+};
+struct axi_dmac_init rx_dmac_init = {
+	"rx_dmac",
+	CF_AD9361_RX_DMA_BASEADDR, //RX_CORE_BASEADDR, //
+	DMA_DEV_TO_MEM,
+	0,
+};
+struct axi_dmac_init tx_dmac_init = {
+	"tx_dmac",
+	CF_AD9361_TX_DMA_BASEADDR, // TX_CORE_BASEADDR, //
+	DMA_MEM_TO_DEV,
+	0,
+};
 AD9361_InitParam default_init_param = {
 	/* Device selection */
 	ID_AD9361,	// dev_sel
@@ -316,7 +322,15 @@ AD9361_InitParam default_init_param = {
 	/* External LO clocks */
 	NULL,	//(*ad9361_rfpll_ext_recalc_rate)()
 	NULL,	//(*ad9361_rfpll_ext_round_rate)()
-	NULL	//(*ad9361_rfpll_ext_set_rate)()
+	NULL,	//(*ad9361_rfpll_ext_set_rate)()
+	NULL,	//spi_desc *spi
+	NULL,	//gpio_desc *gpio_device_id
+	NULL,	//gpio_desc *gpio_resetb
+	NULL, 	//gpio_desc *gpio_desc_sync;
+	&rx_adc_init,
+	&tx_dac_init,   //axi_dac_init *tx_dac_init;
+	&rx_dmac_init,
+	&tx_dmac_init,
 };
 
 AD9361_RXFIRConfig rx_fir_config = {	// BPF PASSBAND 3/20 fs to 1/4 fs
@@ -381,11 +395,14 @@ struct ad9361_rf_phy *ad9361_phy_b;
 extern struct tinyiiod_ops ops;
 #endif
 
+struct spi_init_param spi_param = {.id = SPI_DEVICE_ID, .mode = SPI_MODE_1, .chip_select = CLK_CS};
+
 /***************************************************************************//**
  * @brief main
 *******************************************************************************/
 int main(void)
 {
+	int32_t status = 0;
 #ifdef	USE_LIBIIO
 	struct tinyiiod *iiod;
 #endif
@@ -405,8 +422,10 @@ int main(void)
 	// NOTE: The user has to choose the GPIO numbers according to desired
 	// carrier board.
 	default_init_param.gpio_resetb = GPIO_RESET_PIN;
+	status = gpio_get(&default_init_param.gpio_desc_resetb, GPIO_RESET_PIN);
 #ifdef FMCOMMS5
 	default_init_param.gpio_sync = GPIO_SYNC_PIN;
+	status = gpio_get(&default_init_param.gpio_desc_sync, GPIO_SYNC_PIN);
 	default_init_param.gpio_cal_sw1 = GPIO_CAL_SW1_PIN;
 	default_init_param.gpio_cal_sw2 = GPIO_CAL_SW2_PIN;
 	default_init_param.rx1rx2_phase_inversion_en = 1;
@@ -417,13 +436,18 @@ int main(void)
 #endif
 
 #ifdef LINUX_PLATFORM
-	gpio_init(default_init_param.gpio_resetb);
+	status = gpio_get(&gpio_resetb, CLK_RESETB);
 #else
-	gpio_init(GPIO_DEVICE_ID);
+	status = gpio_get(&default_init_param.gpio_desc_device_id, 0);
 #endif
-	gpio_direction(default_init_param.gpio_resetb, 1);
+	gpio_direction_output(default_init_param.gpio_desc_resetb, 0);
 
-	spi_init(SPI_DEVICE_ID, 1, 0);
+	status = spi_init(&default_init_param.spi, &spi_param);
+
+	if (status != SUCCESS) {
+		printf("SPI init error: %ld\n", status);
+		return status;
+	}
 
 	if (AD9364_DEVICE)
 		default_init_param.dev_sel = ID_AD9364;
@@ -442,7 +466,11 @@ int main(void)
 	default_init_param.digital_interface_tune_fir_disable = 1;
 #endif
 
-	ad9361_init(&ad9361_phy, &default_init_param);
+	status = ad9361_init(&ad9361_phy, &default_init_param);
+	if (status < 0) {
+		printf("ad9361 init error: %ld\n", status);
+		return status;
+	}
 
 	ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
 	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
@@ -451,7 +479,9 @@ int main(void)
 #ifdef LINUX_PLATFORM
 	gpio_init(default_init_param.gpio_sync);
 #endif
-	gpio_direction(default_init_param.gpio_sync, 1);
+	status = gpio_get(&default_init_param.gpio_desc_sync,
+			  default_init_param.gpio_sync);
+	gpio_direction_output(default_init_param.gpio_desc_sync, 1);
 	default_init_param.id_no = 1;
 	default_init_param.gpio_resetb = GPIO_RESET_PIN_2;
 #ifdef LINUX_PLATFORM
@@ -462,7 +492,9 @@ int main(void)
 	default_init_param.gpio_cal_sw2 = -1;
 	default_init_param.rx_synthesizer_frequency_hz = 2300000000UL;
 	default_init_param.tx_synthesizer_frequency_hz = 2300000000UL;
-	gpio_direction(default_init_param.gpio_resetb, 1);
+	status = gpio_get(&default_init_param.gpio_desc_resetb,
+			  default_init_param.gpio_resetb);
+	gpio_direction_output(default_init_param.gpio_desc_resetb, 1);
 	ad9361_init(&ad9361_phy_b, &default_init_param);
 
 	ad9361_set_tx_fir_config(ad9361_phy_b, tx_fir_config);
@@ -473,14 +505,20 @@ int main(void)
 #if defined XILINX_PLATFORM || defined LINUX_PLATFORM || defined ALTERA_PLATFORM
 #ifdef DAC_DMA_EXAMPLE
 #ifdef FMCOMMS5
-	dac_init(ad9361_phy_b, DATA_SEL_DMA, 0);
+	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
+	axi_dac_datasel(ad9361_phy->tx_dac, -1, DATA_SEL_DMA);
 #endif
-	dac_init(ad9361_phy, DATA_SEL_DMA, 1);
+	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
+	axi_dac_datasel(ad9361_phy->tx_dac, -1, DATA_SEL_DMA);
+	axi_dmac_set_sine_lut(ad9361_phy->tx_dac, DAC_DDR_BASEADDR);
 #else
 #ifdef FMCOMMS5
-	dac_init(ad9361_phy_b, DATA_SEL_DDS, 0);
+	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
+	axi_dac_datasel(ad9361_phy->tx_dac, -1, DATA_SEL_DDS);
 #endif
-	dac_init(ad9361_phy, DATA_SEL_DDS, 1);
+	axi_dmac_init(&ad9361_phy->tx_dmac, default_init_param.tx_dmac_init);
+	axi_dmac_init(&ad9361_phy->rx_dmac, default_init_param.rx_dmac_init);
+	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
 #endif
 #endif
 #endif
@@ -497,7 +535,7 @@ int main(void)
 	// size of the capture and the start address must be alinged to the size
 	// of the cache line.
 	mdelay(1000);
-	adc_capture(16384, ADC_DDR_BASEADDR);
+	axi_dmac_transfer(ad9361_phy->rx_dmac, ADC_DDR_BASEADDR, 16384); //read dev
 #ifdef XILINX_PLATFORM
 #ifdef FMCOMMS5
 	Xil_DCacheInvalidateRange(ADC_DDR_BASEADDR, 16384 * 16);
@@ -510,47 +548,31 @@ int main(void)
 #endif
 
 #ifdef USE_LIBIIO
-	init_uart();
 	/* Create the tinyiiod */
 	iiod = tinyiiod_create(xml, &ops);
 
+#ifdef UART_INTERFACE
+	init_uart();
 	while(1) {
 		tinyiiod_read_command(iiod);
 	}
-#endif
+#endif // UART_INTERFACE
 
-#ifdef CONSOLE_COMMANDS
-	get_help(NULL, 0);
-
-	while(1) {
-		console_get_command(received_cmd);
-		invalid_cmd = 0;
-		for(cmd = 0; cmd < cmd_no; cmd++) {
-			param_no = 0;
-			cmd_type = console_check_commands(received_cmd, cmd_list[cmd].name,
-							  param, &param_no);
-			if(cmd_type == UNKNOWN_CMD) {
-				invalid_cmd++;
-			} else {
-				cmd_list[cmd].function(param, param_no);
-			}
-		}
-		if(invalid_cmd == cmd_no) {
-			console_print("Invalid command!\n");
-		}
-	}
-#endif
+#endif // USE_LIBIIO
 
 	printf("Done.\n");
 
 #ifdef TDD_SWITCH_STATE_EXAMPLE
 	uint32_t ensm_mode;
+	struct gpio_desc 	*gpio_enable_pin;
+	struct gpio_desc 	*gpio_txnrx_pin;
+
 	if (!ad9361_phy->pdata->fdd) {
 		if (ad9361_phy->pdata->ensm_pin_ctrl) {
-			gpio_direction(GPIO_ENABLE_PIN, 1);
-			gpio_direction(GPIO_TXNRX_PIN, 1);
-			gpio_set_value(GPIO_ENABLE_PIN, 0);
-			gpio_set_value(GPIO_TXNRX_PIN, 0);
+			status = gpio_get(&gpio_enable_pin, GPIO_ENABLE_PIN);
+			gpio_direction_output(gpio_enable_pin, 1);
+			status = gpio_get(&gpio_txnrx_pin, GPIO_TXNRX_PIN);
+			gpio_direction_output(gpio_txnrx_pin, 0);
 			udelay(10);
 			ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 			printf("TXNRX control - Alert: %s\n",
@@ -559,37 +581,37 @@ int main(void)
 
 			if (ad9361_phy->pdata->ensm_pin_pulse_mode) {
 				while(1) {
-					gpio_set_value(GPIO_TXNRX_PIN, 0);
+					gpio_set_value(gpio_txnrx_pin, 0);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 1);
+					gpio_set_value(gpio_enable_pin, 1);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 0);
+					gpio_set_value(gpio_enable_pin, 0);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX Pulse control - RX: %s\n",
 					       ensm_mode == ENSM_MODE_RX ? "OK" : "Error");
 					mdelay(1000);
 
-					gpio_set_value(GPIO_ENABLE_PIN, 1);
+					gpio_set_value(gpio_enable_pin, 1);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 0);
+					gpio_set_value(gpio_enable_pin, 0);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX Pulse control - Alert: %s\n",
 					       ensm_mode == ENSM_MODE_ALERT ? "OK" : "Error");
 					mdelay(1000);
 
-					gpio_set_value(GPIO_TXNRX_PIN, 1);
+					gpio_set_value(gpio_txnrx_pin, 1);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 1);
+					gpio_set_value(gpio_enable_pin, 1);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 0);
+					gpio_set_value(gpio_enable_pin, 0);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX Pulse control - TX: %s\n",
 					       ensm_mode == ENSM_MODE_TX ? "OK" : "Error");
 					mdelay(1000);
 
-					gpio_set_value(GPIO_ENABLE_PIN, 1);
+					gpio_set_value(gpio_enable_pin, 1);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 0);
+					gpio_set_value(gpio_enable_pin, 0);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX Pulse control - Alert: %s\n",
 					       ensm_mode == ENSM_MODE_ALERT ? "OK" : "Error");
@@ -597,32 +619,32 @@ int main(void)
 				}
 			} else {
 				while(1) {
-					gpio_set_value(GPIO_TXNRX_PIN, 0);
+					gpio_set_value(gpio_txnrx_pin, 0);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 1);
+					gpio_set_value(gpio_enable_pin, 1);
 					udelay(10);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX control - RX: %s\n",
 					       ensm_mode == ENSM_MODE_RX ? "OK" : "Error");
 					mdelay(1000);
 
-					gpio_set_value(GPIO_ENABLE_PIN, 0);
+					gpio_set_value(gpio_enable_pin, 0);
 					udelay(10);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX control - Alert: %s\n",
 					       ensm_mode == ENSM_MODE_ALERT ? "OK" : "Error");
 					mdelay(1000);
 
-					gpio_set_value(GPIO_TXNRX_PIN, 1);
+					gpio_set_value(gpio_txnrx_pin, 1);
 					udelay(10);
-					gpio_set_value(GPIO_ENABLE_PIN, 1);
+					gpio_set_value(gpio_enable_pin, 1);
 					udelay(10);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX control - TX: %s\n",
 					       ensm_mode == ENSM_MODE_TX ? "OK" : "Error");
 					mdelay(1000);
 
-					gpio_set_value(GPIO_ENABLE_PIN, 0);
+					gpio_set_value(gpio_enable_pin, 0);
 					udelay(10);
 					ad9361_get_en_state_machine_mode(ad9361_phy, &ensm_mode);
 					printf("TXNRX control - Alert: %s\n",
