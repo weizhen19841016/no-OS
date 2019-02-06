@@ -427,22 +427,22 @@ int32_t gpio_set_value(struct gpio_desc *desc,
 #ifdef _XPARAMETERS_PS_H_
 	XGpioPs_WritePin(&desc->instance, desc->number, value);
 #else
-	uint32_t config = 0;
-	uint32_t data_reg_addr;
+	uint8_t pin = desc->number;
+	uint8_t channel;
+	uint32_t reg_val;
 
 	if (pin >= 32) {
-		data_reg_addr = XGPIO_DATA2_OFFSET;
+		channel = 2;
 		pin -= 32;
 	} else
-		data_reg_addr = XGPIO_DATA_OFFSET;
+		channel = 1;
 
-	config = Xil_In32((gpio_config->BaseAddress + data_reg_addr));
-	if(data) {
-		config |= (1 << pin);
-	} else {
-		config &= ~(1 << pin);
-	}
-	Xil_Out32((gpio_config->BaseAddress + data_reg_addr), config);
+	reg_val = XGpio_DiscreteRead(&desc->instance, channel);
+	if(value)
+		reg_val |= (1 << pin);
+	else
+		reg_val &= ~(1 << pin);
+	XGpio_DiscreteWrite(&desc->instance, channel, reg_val);
 #endif
 
 	return 0;
