@@ -81,15 +81,15 @@
 
 /************************** Function Prototypes *****************************/
 
-int32_t UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
-			  u16 DeviceId, u16 UartIntrId);
+int32_t serial_ps_intr(INTC *IntcInstPtr, XUartPs *UartInstPtr,
+		       u16 DeviceId, u16 UartIntrId);
 
 
-static int32_t SetupInterruptSystem(INTC *IntcInstancePtr,
-				    XUartPs *UartInstancePtr,
-				    u16 UartIntrId);
+static int32_t serial_setup_interrupt_system(INTC *IntcInstancePtr,
+		XUartPs *UartInstancePtr,
+		u16 UartIntrId);
 
-void Handler(void *CallBackRef, u32 Event, uint32_t EventData);
+void serial_handler(void *CallBackRef, u32 Event, uint32_t EventData);
 
 
 /************************** Variable Definitions ***************************/
@@ -112,6 +112,9 @@ static char buffer[BUFFERL_LENGTH];
 static char *pnext = buffer;
 static char *pcurr = buffer;
 
+/***************************************************************************//**
+ * @brief serial_read_line
+*******************************************************************************/
 int32_t serial_read_line(int32_t *instance_id, char *buf)
 {
 	if(pcurr == buffer) { // trigger a new receive
@@ -141,6 +144,9 @@ int32_t serial_read_line(int32_t *instance_id, char *buf)
 	return cmd_length;
 }
 
+/***************************************************************************//**
+ * @brief serial_read
+*******************************************************************************/
 int32_t serial_read(int32_t *instance_id, char *buf, size_t len)
 {
 	size_t receive_len = len;
@@ -169,12 +175,18 @@ int32_t serial_read(int32_t *instance_id, char *buf, size_t len)
 	return TotalReceivedCount + receive_len;
 }
 
+/***************************************************************************//**
+ * @brief serial_read_nonblocking
+*******************************************************************************/
 int32_t serial_read_nonblocking(int32_t *instance_id, char *buf, size_t len)
 {
 	XUartPs_Recv(&UartPs, (u8*)buf, len);
 	return 0;
 }
 
+/***************************************************************************//**
+ * @brief serial_read_wait
+*******************************************************************************/
 int32_t serial_read_wait(int32_t *instance_id, size_t len)
 {
 	do {
@@ -189,22 +201,27 @@ void serial_write_data(int32_t instance_id, const char *buf, size_t len)
 		outbyte(buf[i]);
 }
 
-int32_t init_uart(void)
+/***************************************************************************//**
+ * @brief serial_init
+*******************************************************************************/
+int32_t serial_init(void)
 {
 	int32_t Status;
 
 	/* Run the UartPs Interrupt example, specify the the Device ID */
-	Status = UartPsIntrExample(&InterruptController, &UartPs,
-				   UART_DEVICE_ID, UART_INT_IRQ_ID);
+	Status = serial_ps_intr(&InterruptController, &UartPs,
+				UART_DEVICE_ID, UART_INT_IRQ_ID);
 	if (Status != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
 	return XST_SUCCESS;
 }
 
-
-int32_t UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
-			  u16 DeviceId, u16 UartIntrId)
+/***************************************************************************//**
+ * @brief serial_ps_intr
+*******************************************************************************/
+int32_t serial_ps_intr(INTC *IntcInstPtr, XUartPs *UartInstPtr,
+		       u16 DeviceId, u16 UartIntrId)
 {
 	int32_t Status;
 	XUartPs_Config *Config;
@@ -240,7 +257,7 @@ int32_t UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
 	 * Connect the UART to the interrupt subsystem such that interrupts
 	 * can occur. This function is application specific.
 	 */
-	Status = SetupInterruptSystem(IntcInstPtr, UartInstPtr, UartIntrId);
+	Status = serial_setup_interrupt_system(IntcInstPtr, UartInstPtr, UartIntrId);
 	if (Status != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
@@ -251,7 +268,7 @@ int32_t UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
 	 * a pointer to the UART driver instance as the callback reference
 	 * so the handlers are able to access the instance data
 	 */
-	XUartPs_SetHandler(UartInstPtr, (XUartPs_Handler)Handler, UartInstPtr);
+	XUartPs_SetHandler(UartInstPtr, (XUartPs_Handler)serial_handler, UartInstPtr);
 
 	/*
 	 * Enable the interrupt of the UART so interrupts will occur, setup
@@ -304,7 +321,7 @@ int32_t UartPsIntrExample(INTC *IntcInstPtr, XUartPs *UartInstPtr,
 * @note		None.
 *
 ***************************************************************************/
-void Handler(void *CallBackRef, u32 Event, uint32_t EventData)
+void serial_handler(void *CallBackRef, u32 Event, uint32_t EventData)
 {
 	/* All of the data has been sent */
 	if (Event == XUARTPS_EVENT_SENT_DATA) {
@@ -374,9 +391,9 @@ void Handler(void *CallBackRef, u32 Event, uint32_t EventData)
 * @note		None.
 *
 ****************************************************************************/
-static int32_t SetupInterruptSystem(INTC *IntcInstancePtr,
-				    XUartPs *UartInstancePtr,
-				    u16 UartIntrId)
+static int32_t serial_setup_interrupt_system(INTC *IntcInstancePtr,
+		XUartPs *UartInstancePtr,
+		u16 UartIntrId)
 {
 	int32_t Status;
 

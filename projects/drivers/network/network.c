@@ -63,8 +63,23 @@ struct fifo {
 	u16_t len;
 };
 
-static struct fifo *ip_fifo;
+static struct fifo *network_fifo;
 
+struct network_instance {
+	int32_t instance_id;
+	u8_t state;
+	u8_t retries;
+	struct tcp_pcb *pcb;
+	/* pbuf (chain) to recycle */
+	struct pbuf *p;
+	UT_hash_handle hh;         /* makes this structure hashable */
+};
+
+static struct network_instance *instances = NULL;
+
+/***************************************************************************//**
+ * @brief new_buffer
+*******************************************************************************/
 struct fifo * new_buffer()
 {
 	struct fifo *buf = malloc(sizeof(struct fifo));
@@ -74,6 +89,9 @@ struct fifo * new_buffer()
 	return buf;
 }
 
+/***************************************************************************//**
+ * @brief get_last
+*******************************************************************************/
 struct fifo *get_last(struct fifo *p_fifo)
 {
 	if(p_fifo == NULL)
@@ -84,6 +102,9 @@ struct fifo *get_last(struct fifo *p_fifo)
 	return p_fifo;
 }
 
+/***************************************************************************//**
+ * @brief insert_tail
+*******************************************************************************/
 void insert_tail(struct fifo **p_fifo, struct pbuf *ps, int32_t id)
 {
 	struct fifo *p = NULL;
@@ -101,6 +122,9 @@ void insert_tail(struct fifo **p_fifo, struct pbuf *ps, int32_t id)
 	p->len = ps->len;
 }
 
+/***************************************************************************//**
+ * @brief remove_head
+*******************************************************************************/
 struct fifo * remove_head(struct fifo *p_fifo)
 {
 	struct fifo *p = p_fifo;
@@ -116,18 +140,6 @@ struct fifo * remove_head(struct fifo *p_fifo)
 	return p_fifo;
 }
 
-struct network_instance {
-	int32_t instance_id;
-	u8_t state;
-	u8_t retries;
-	struct tcp_pcb *pcb;
-	/* pbuf (chain) to recycle */
-	struct pbuf *p;
-	UT_hash_handle hh;         /* makes this structure hashable */
-};
-
-static struct network_instance *instances = NULL;
-
 err_t network_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
 err_t network_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 void network_error(void *arg, err_t err);
@@ -135,7 +147,26 @@ void network_store(struct tcp_pcb *tpcb, struct network_instance *es);
 void network_close(struct tcp_pcb *tpcb, struct network_instance *es);
 err_t network_poll(void *arg, struct tcp_pcb *tpcb);
 
-void start_application(void)
+/***************************************************************************//**
+ * @brief network_keep_alive
+*******************************************************************************/
+void network_keep_alive(void)
+{
+	lwip_keep_alive();
+}
+
+/***************************************************************************//**
+ * @brief network_init
+*******************************************************************************/
+int32_t network_init(void)
+{
+	return init_lwip();
+}
+
+/***************************************************************************//**
+ * @brief start_application
+*******************************************************************************/
+void network_start(void)
 {
 	struct tcp_pcb *pcb;
 	u16_t port = 30431;
@@ -156,6 +187,9 @@ void start_application(void)
 	}
 }
 
+/***************************************************************************//**
+ * @brief network_accept
+*******************************************************************************/
 err_t network_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 {
 	err_t ret_err;
@@ -192,6 +226,9 @@ err_t network_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 	return ret_err;
 }
 
+/***************************************************************************//**
+ * @brief network_recv
+*******************************************************************************/
 err_t network_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 {
 	struct network_instance *es;
@@ -254,6 +291,9 @@ err_t network_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 	return ret_err;
 }
 
+/***************************************************************************//**
+ * @brief network_error
+*******************************************************************************/
 void network_error(void *arg, err_t err)
 {
 	struct network_instance *es;
@@ -266,6 +306,9 @@ void network_error(void *arg, err_t err)
 	}
 }
 
+/***************************************************************************//**
+ * @brief network_store
+*******************************************************************************/
 void network_store(struct tcp_pcb *tpcb, struct network_instance *es)
 {
 	struct pbuf *ptr;
@@ -275,7 +318,7 @@ void network_store(struct tcp_pcb *tpcb, struct network_instance *es)
 		ptr = es->p;
 		plen = ptr->len;
 
-		insert_tail(&ip_fifo, ptr, es->instance_id);
+		insert_tail(&network_fifo, ptr, es->instance_id);
 		/* continue with next pbuf in chain (if any) */
 		es->p = ptr->next;
 		if(es->p != NULL) {
@@ -292,10 +335,13 @@ void network_store(struct tcp_pcb *tpcb, struct network_instance *es)
 	}
 }
 
+/***************************************************************************//**
+ * @brief network_close
+*******************************************************************************/
 void network_close(struct tcp_pcb *tpcb, struct network_instance *es)
 {
-	while(ip_fifo) {
-		ip_fifo = remove_head(ip_fifo);
+	while(network_fifo) {
+		network_fifo = remove_head(network_fifo);
 	}
 	tcp_arg(tpcb, NULL);
 	tcp_sent(tpcb, NULL);
@@ -309,91 +355,106 @@ void network_close(struct tcp_pcb *tpcb, struct network_instance *es)
 	tcp_close(tpcb);
 }
 
-int32_t tcpip_read_line(int32_t *instance_id, char *buf)
+/***************************************************************************//**
+ * @brief network_read_line
+*******************************************************************************/
+int32_t network_read_line(int32_t *instance_id, char *buf)
 {
 	int32_t len = 0;
 	char *data = NULL;
-	while(ip_fifo == NULL) {
+	while(network_fifo == NULL) {
 		lwip_keep_alive();
 	}
 
-	data = ip_fifo->data;
+	data = network_fifo->data;
 	char* end = strstr(data, "\r\n");
 	if(end && end == data) { // \r\n on first pos
-		ip_fifo->len -= 2;
+		network_fifo->len -= 2;
 		data += 2;
 		end = strstr(data, "\r\n");
 	}
-	*instance_id = ip_fifo->instance_id;
+	*instance_id = network_fifo->instance_id;
 	if(end) {
 		len = end - data;
 		memcpy(buf, data, len);
-		if(len + 2 >= ip_fifo->len) {
-			ip_fifo = remove_head(ip_fifo);
+		if(len + 2 >= network_fifo->len) {
+			network_fifo = remove_head(network_fifo);
 		} else {
-			ip_fifo->len = ip_fifo->len - len - 2;
-			char * remaining = malloc(ip_fifo->len);
-			memcpy(remaining, (end + 2), ip_fifo->len);
-			free(ip_fifo->data);
-			ip_fifo->data = remaining;
+			network_fifo->len = network_fifo->len - len - 2;
+			char * remaining = malloc(network_fifo->len);
+			memcpy(remaining, (end + 2), network_fifo->len);
+			free(network_fifo->data);
+			network_fifo->data = remaining;
 		}
 	} else {
-		memcpy(buf, ip_fifo->data, ip_fifo->len);
-		ip_fifo = remove_head(ip_fifo);
+		memcpy(buf, network_fifo->data, network_fifo->len);
+		network_fifo = remove_head(network_fifo);
 	}
 	return len;
 }
 
-int32_t tcpip_read(int32_t *instance_id, char *buf, size_t len)
+/***************************************************************************//**
+ * @brief network_read
+*******************************************************************************/
+int32_t network_read(int32_t *instance_id, char *buf, size_t len)
 {
 	int32_t temp_len = 0;
-	while(ip_fifo == NULL) {
+	while(network_fifo == NULL) {
 		lwip_keep_alive();
 	}
-	if(ip_fifo) {
-		*instance_id = ip_fifo->instance_id;
-		if(ip_fifo->len == len) {
-			memcpy(buf, ip_fifo->data, len);
-			ip_fifo = remove_head(ip_fifo);
+	if(network_fifo) {
+		*instance_id = network_fifo->instance_id;
+		if(network_fifo->len == len) {
+			memcpy(buf, network_fifo->data, len);
+			network_fifo = remove_head(network_fifo);
 			temp_len =  len;
-		} else if (ip_fifo->len < len) {
+		} else if (network_fifo->len < len) {
 			char *pbuf = buf;
 			do {
-				if(ip_fifo) {
-					memcpy(pbuf, ip_fifo->data, ip_fifo->len);
-					pbuf = pbuf + ip_fifo->len;
-					temp_len += ip_fifo->len;
-					ip_fifo = remove_head(ip_fifo);
+				if(network_fifo) {
+					memcpy(pbuf, network_fifo->data, network_fifo->len);
+					pbuf = pbuf + network_fifo->len;
+					temp_len += network_fifo->len;
+					network_fifo = remove_head(network_fifo);
 				}
 				if(temp_len < len)
 					lwip_keep_alive();
 			} while(temp_len < len);
 		} else { // (ip_fifo->len > len)
-			memcpy(buf, ip_fifo->data, len);
-			ip_fifo->len = ip_fifo->len - len; // new length
-			char * remaining = malloc(ip_fifo->len);
-			memcpy(remaining, ip_fifo->data + len, ip_fifo->len);
-			free(ip_fifo->data);
-			ip_fifo->data = remaining;
+			memcpy(buf, network_fifo->data, len);
+			network_fifo->len = network_fifo->len - len; // new length
+			char * remaining = malloc(network_fifo->len);
+			memcpy(remaining, network_fifo->data + len, network_fifo->len);
+			free(network_fifo->data);
+			network_fifo->data = remaining;
 			temp_len =  len;
 		}
 	}
 	return temp_len;
 }
 
+/***************************************************************************//**
+ * @brief network_read_nonblocking
+*******************************************************************************/
 static char *non_block_buf;
-int32_t tcpip_read_nonblocking(int32_t *instance_id, char *buf, size_t len)
+int32_t network_read_nonblocking(int32_t *instance_id, char *buf, size_t len)
 {
 	non_block_buf = buf;
 	return 0;
 }
 
-int32_t tcpip_read_wait(int32_t *instance_id, size_t len)
+/***************************************************************************//**
+ * @brief network_read_wait
+*******************************************************************************/
+int32_t network_read_wait(int32_t *instance_id, size_t len)
 {
-	return tcpip_read(instance_id, non_block_buf, len);
+	return network_read(instance_id, non_block_buf, len);
 }
 
-void tcpip_write_data(int32_t instance_id, const char *buf, size_t len)
+/***************************************************************************//**
+ * @brief network_write_data
+*******************************************************************************/
+void network_write_data(int32_t instance_id, const char *buf, size_t len)
 {
 	struct network_instance *instance = NULL;
 	u8_t apiflags = TCP_WRITE_FLAG_COPY;
@@ -419,7 +480,10 @@ void tcpip_write_data(int32_t instance_id, const char *buf, size_t len)
 	} while(tcp_sndbuf(instance->pcb) == 0);
 }
 
-int32_t tcpip_exit(int32_t instance_id)
+/***************************************************************************//**
+ * @brief network_exit
+*******************************************************************************/
+int32_t network_exit(int32_t instance_id)
 {
 	struct network_instance *instance;
 	err_t err = 0;

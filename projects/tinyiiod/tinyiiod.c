@@ -27,6 +27,9 @@ struct tinyiiod {
 	const struct tinyiiod_ops *ops;
 };
 
+/***************************************************************************//**
+ * @brief tinyiiod_create
+*******************************************************************************/
 struct tinyiiod * tinyiiod_create(const char *xml,
 				  const struct tinyiiod_ops *ops)
 {
@@ -41,11 +44,17 @@ struct tinyiiod * tinyiiod_create(const char *xml,
 	return iiod;
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_destroy
+*******************************************************************************/
 void tinyiiod_destroy(struct tinyiiod *iiod)
 {
 	free(iiod);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_read_command
+*******************************************************************************/
 int32_t tinyiiod_read_command(struct tinyiiod *iiod)
 {
 	char buf[128];
@@ -66,46 +75,73 @@ int32_t tinyiiod_read_command(struct tinyiiod *iiod)
 	return ret;
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_read_char
+*******************************************************************************/
 char tinyiiod_read_char(struct tinyiiod *iiod)
 {
 	return 0;
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_read
+*******************************************************************************/
 int32_t tinyiiod_read(struct tinyiiod *iiod, char *buf, size_t len)
 {
 	return iiod->ops->read(&iiod->instance_id, buf, len);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_read_line
+*******************************************************************************/
 int32_t tinyiiod_read_line(struct tinyiiod *iiod, char *buf)
 {
 	return iiod->ops->read_line(&iiod->instance_id, buf);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_read_nonblocking
+*******************************************************************************/
 int32_t tinyiiod_read_nonblocking(struct tinyiiod *iiod, char *buf, size_t len)
 {
 	return iiod->ops->read_nonbloking(&iiod->instance_id, buf, len);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_read_wait
+*******************************************************************************/
 int32_t tinyiiod_read_wait(struct tinyiiod *iiod, size_t len)
 {
 	return iiod->ops->read_wait(&iiod->instance_id, len);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_write_char
+*******************************************************************************/
 void tinyiiod_write_char(struct tinyiiod *iiod, char c)
 {
 	iiod->ops->write(iiod->instance_id, &c, 1);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_write
+*******************************************************************************/
 void tinyiiod_write(struct tinyiiod *iiod, const char *data, size_t len)
 {
 	iiod->ops->write(iiod->instance_id, data, len);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_write_string
+*******************************************************************************/
 void tinyiiod_write_string(struct tinyiiod *iiod, const char *str)
 {
 	tinyiiod_write(iiod, str, strlen(str));
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_write_value
+*******************************************************************************/
 void tinyiiod_write_value(struct tinyiiod *iiod, int32_t value)
 {
 	char buf[16];
@@ -114,6 +150,9 @@ void tinyiiod_write_value(struct tinyiiod *iiod, int32_t value)
 	tinyiiod_write_string(iiod, buf);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_write_xml
+*******************************************************************************/
 void tinyiiod_write_xml(struct tinyiiod *iiod)
 {
 	size_t len = strlen(iiod->xml);
@@ -122,6 +161,9 @@ void tinyiiod_write_xml(struct tinyiiod *iiod)
 	tinyiiod_write_char(iiod, '\n');
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_do_read_attr
+*******************************************************************************/
 void tinyiiod_do_read_attr(struct tinyiiod *iiod, const char *device,
 			   const char *channel, bool ch_out, const char *attr, bool debug)
 {
@@ -142,6 +184,9 @@ void tinyiiod_do_read_attr(struct tinyiiod *iiod, const char *device,
 	}
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_do_write_attr
+*******************************************************************************/
 void tinyiiod_do_write_attr(struct tinyiiod *iiod, const char *device,
 			    const char *channel, bool ch_out, const char *attr,
 			    size_t bytes, bool debug)
@@ -164,6 +209,9 @@ void tinyiiod_do_write_attr(struct tinyiiod *iiod, const char *device,
 	tinyiiod_write_value(iiod, (int) ret);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_do_open
+*******************************************************************************/
 void tinyiiod_do_open(struct tinyiiod *iiod, const char *device,
 		      size_t sample_size, uint32_t mask)
 {
@@ -174,17 +222,26 @@ void tinyiiod_do_open(struct tinyiiod *iiod, const char *device,
 	tinyiiod_write_value(iiod, ret);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_do_close
+*******************************************************************************/
 void tinyiiod_do_close(struct tinyiiod *iiod, const char *device)
 {
 	int32_t ret = iiod->ops->close(device);
 	tinyiiod_write_value(iiod, ret);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_do_exit
+*******************************************************************************/
 int32_t tinyiiod_do_exit(struct tinyiiod *iiod)
 {
 	return iiod->ops->exit(iiod->instance_id);
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_do_writebuf
+*******************************************************************************/
 int32_t tinyiiod_do_writebuf(struct tinyiiod *iiod,
 			     const char *device, size_t bytes_count)
 {
@@ -206,6 +263,9 @@ int32_t tinyiiod_do_writebuf(struct tinyiiod *iiod,
 	return 0;
 }
 
+/***************************************************************************//**
+ * @brief tinyiiod_do_readbuf
+*******************************************************************************/
 void tinyiiod_do_readbuf(struct tinyiiod *iiod,
 			 const char *device, size_t bytes_count)
 {

@@ -2622,12 +2622,12 @@ const struct tinyiiod_ops ops = {
 #endif // UART_INTERFACE
 
 #ifdef TCPIP_INTERFACE
-	.read = tcpip_read,
-	.read_line = tcpip_read_line,
-	.read_nonbloking = tcpip_read_nonblocking,
-	.read_wait = tcpip_read_wait,
-	.write = tcpip_write_data,
-	.exit = tcpip_exit,
+	.read = network_read,
+	.read_line = network_read_line,
+	.read_nonbloking = network_read_nonblocking,
+	.read_wait = network_read_wait,
+	.write = network_write_data,
+	.exit = network_exit,
 #endif // TCPIP_INTERFACE
 	//device operations
 	.read_attr = read_attr,

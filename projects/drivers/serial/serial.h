@@ -50,6 +50,6 @@ int32_t serial_read_wait(int32_t *instance_id, size_t len);
 
 void serial_write_data(int32_t instance_id, const char *buf, size_t len);
 
-int32_t init_uart(void);
+int32_t serial_init(void);
 
 #endif /* SRC_SERIAL_H_ */

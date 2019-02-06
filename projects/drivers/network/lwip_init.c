@@ -54,7 +54,7 @@
 #endif
 
 /* defined by each RAW mode application */
-int start_application();
+int network_start();
 void tcp_fasttmr(void);
 void tcp_slowtmr(void);
 
@@ -227,7 +227,7 @@ int init_lwip()
 
 #endif
 	/* start the application (web server, rxtest, txtest, etc..) */
-	start_application();
+	network_start();
 	return 0;
 }
 

@@ -57,7 +57,7 @@
 #include "serial.h"
 #endif // UART_INTERFACE
 #ifdef TCPIP_INTERFACE
-#include "lwip_init.h"
+#include "network.h"
 #endif // TCPIP_INTERFACE
 #include "tinyiiod.h"
 #include "tinyiiod_user.h"
@@ -556,16 +556,16 @@ int main(void)
 	iiod = tinyiiod_create(xml, &ops);
 
 #ifdef UART_INTERFACE
-	init_uart();
+	serial_init();
 	while(1) {
 		tinyiiod_read_command(iiod);
 	}
 #endif // UART_INTERFACE
 
 #ifdef TCPIP_INTERFACE
-	init_lwip();
+	network_init();
 	while(1) {
-		lwip_keep_alive();
+		network_keep_alive();
 		tinyiiod_read_command(iiod);
 	}
 #endif // TCPIP_INTERFACE
