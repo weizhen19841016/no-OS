@@ -122,5 +122,5 @@ int32_t axi_dac_datasel(struct axi_dac *dac, int32_t chan,
 			enum dds_data_select sel);
 int32_t axi_dmac_set_buff(struct axi_dac *dac, uint32_t address, uint16_t *buf,
 			  uint32_t buff_size);
-uint32_t axi_dmac_set_sine_lut(struct axi_dac *dac, uint32_t address);
+uint32_t axi_dac_set_sine_lut(struct axi_dac *dac, uint32_t address);
 #endif

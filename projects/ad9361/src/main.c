@@ -71,7 +71,7 @@ struct axi_adc_init rx_adc_init = {
 	4,
 };
 struct axi_dac_init tx_dac_init = {
-	"rx_dac",
+	"tx_dac",
 	TX_CORE_BASEADDR,
 	4,
 	4,
@@ -415,7 +415,7 @@ int main(void)
 	Xil_ICacheEnable();
 	Xil_DCacheEnable();
 #endif
-
+	printf("\n\n\n");
 #ifdef ALTERA_PLATFORM
 	if (altera_bridge_init()) {
 		printf("Altera Bridge Init Error!\n");
@@ -426,7 +426,12 @@ int main(void)
 	// NOTE: The user has to choose the GPIO numbers according to desired
 	// carrier board.
 	default_init_param.gpio_resetb = GPIO_RESET_PIN;
-	status = gpio_get(&default_init_param.gpio_desc_resetb, GPIO_RESET_PIN);
+	status = gpio_get(&default_init_param.gpio_desc_resetb,
+			  default_init_param.gpio_resetb);
+	if (status != SUCCESS) {
+		printf("gpio_get() error: %ld\n", status);
+		return status;
+	}
 #ifdef FMCOMMS5
 	default_init_param.gpio_sync = GPIO_SYNC_PIN;
 	status = gpio_get(&default_init_param.gpio_desc_sync, GPIO_SYNC_PIN);
@@ -438,18 +443,11 @@ int main(void)
 	default_init_param.gpio_cal_sw1 = -1;
 	default_init_param.gpio_cal_sw2 = -1;
 #endif
-
-#ifdef LINUX_PLATFORM
-	status = gpio_get(&gpio_resetb, CLK_RESETB);
-#else
-	status = gpio_get(&default_init_param.gpio_desc_device_id, 0);
-#endif
 	gpio_direction_output(default_init_param.gpio_desc_resetb, 0);
 
 	status = spi_init(&default_init_param.spi, &spi_param);
-
 	if (status != SUCCESS) {
-		printf("SPI init error: %ld\n", status);
+		printf("spi_init() error: %ld\n", status);
 		return status;
 	}
 
@@ -511,21 +509,22 @@ int main(void)
 #ifdef FMCOMMS5
 	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
 	axi_dac_datasel(ad9361_phy->tx_dac, -1, DATA_SEL_DMA);
-#endif
+#endif //FMCOMMS5
 	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
 	axi_dac_datasel(ad9361_phy->tx_dac, -1, DATA_SEL_DMA);
-	axi_dmac_set_sine_lut(ad9361_phy->tx_dac, DAC_DDR_BASEADDR);
-#else
-#ifdef FMCOMMS5
-	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
-	axi_dac_datasel(ad9361_phy->tx_dac, -1, DATA_SEL_DDS);
-#endif
 	axi_dmac_init(&ad9361_phy->tx_dmac, default_init_param.tx_dmac_init);
 	axi_dmac_init(&ad9361_phy->rx_dmac, default_init_param.rx_dmac_init);
+	axi_dac_set_sine_lut(ad9361_phy->tx_dac, DAC_DDR_BASEADDR);
+	axi_dmac_transfer(ad9361_phy->rx_dmac, ADC_DDR_BASEADDR, 16384);
+#else // DAC_DMA_EXAMPLE
+#ifdef FMCOMMS5
 	axi_dac_init(&ad9361_phy->tx_dac, ad9361_phy->tx_dac_init);
-#endif
-#endif
-#endif
+	axi_dmac_init(&ad9361_phy->tx_dmac, default_init_param.tx_dmac_init);
+	axi_dac_datasel(ad9361_phy->tx_dac, -1, DATA_SEL_DDS);
+#endif // FMCOMMS5
+#endif // DAC_DMA_EXAMPLE
+#endif // #if defined XILINX_PLATFORM || defined LINUX_PLATFORM || defined ALTERA_PLATFORM
+#endif // AXI_ADC_NOT_PRESENT
 
 #ifdef FMCOMMS5
 	ad9361_do_mcs(ad9361_phy, ad9361_phy_b);
@@ -534,8 +533,9 @@ int main(void)
 #ifndef AXI_ADC_NOT_PRESENT
 #if (defined XILINX_PLATFORM || defined ALTERA_PLATFORM) && \
 	(defined ADC_DMA_EXAMPLE || defined ADC_DMA_IRQ_EXAMPLE)
+	axi_dmac_init(&ad9361_phy->rx_dmac, default_init_param.rx_dmac_init);
 	// NOTE: To prevent unwanted data loss, it's recommended to invalidate
-	// cache after each adc_capture() call, keeping in mind that the
+	// cache after each axi_dmac_transfer() call, keeping in mind that the
 	// size of the capture and the start address must be alinged to the size
 	// of the cache line.
 	mdelay(1000);
@@ -552,6 +552,8 @@ int main(void)
 #endif
 
 #ifdef USE_LIBIIO
+	axi_dmac_init(&ad9361_phy->tx_dmac, default_init_param.tx_dmac_init);
+	axi_dmac_init(&ad9361_phy->rx_dmac, default_init_param.rx_dmac_init);
 	/* Create the tinyiiod */
 	iiod = tinyiiod_create(xml, &ops);
 

@@ -539,7 +539,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy,
 	if (ret < 0)
 		goto out;
 
-	axi_dac_init(&phy->tx_dac, phy->tx_dac_init);
+
 	ad9361_init_gain_tables(phy);
 
 	ret = ad9361_setup(phy);
@@ -547,6 +547,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy,
 		goto out;
 
 #ifndef AXI_ADC_NOT_PRESENT
+	axi_dac_init(&phy->tx_dac, phy->tx_dac_init);
 	axi_adc_init(&phy->rx_adc, phy->rx_adc_init);
 	axi_adc_read(phy->rx_adc, ADI_REG_VERSION, &phy->adc_state->pcore_version);
 #endif

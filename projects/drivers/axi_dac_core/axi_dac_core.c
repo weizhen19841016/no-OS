@@ -539,7 +539,7 @@ int32_t axi_dac_datasel(struct axi_dac *dac, int32_t chan,
 /***************************************************************************//**
  * @brief axi_dmac_set_sine_lut
 *******************************************************************************/
-uint32_t axi_dmac_set_sine_lut(struct axi_dac *dac, uint32_t address)
+uint32_t axi_dac_set_sine_lut(struct axi_dac *dac, uint32_t address)
 {
 	uint32_t length;
 	uint32_t tx_count;

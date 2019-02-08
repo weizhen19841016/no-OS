@@ -289,7 +289,7 @@ int32_t gpio_get(struct gpio_desc **desc,
 	gpio_desc *descriptor;
 	int32_t ret;
 
-	descriptor = (struct gpio_desc *) malloc(sizeof(*descriptor));
+	descriptor = (struct gpio_desc *) calloc(1, sizeof(*descriptor));
 	if (!descriptor)
 		return FAILURE;
 
